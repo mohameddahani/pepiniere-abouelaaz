@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { SubmitHandler, useForm, useWatch } from "react-hook-form";
 import { toast } from "react-toastify";
 import { z } from "zod/v4";
@@ -72,6 +72,68 @@ const COMPANY_NAME = "Pepiniere Abouelaaz";
 const PHONE_NUMBER = "0664724261";
 const STORAGE_KEY = "olive_quotes_v1";
 
+const EMPTY_QUOTES: OliveQuote[] = [];
+
+const quoteStore = (() => {
+  let cachedQuotes: OliveQuote[] = EMPTY_QUOTES;
+  let cachedRaw = "";
+  const listeners = new Set<() => void>();
+
+  const readStorage = () => {
+    if (typeof window === "undefined") {
+      return cachedQuotes;
+    }
+
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      cachedQuotes = EMPTY_QUOTES;
+      cachedRaw = "";
+      return cachedQuotes;
+    }
+
+    if (stored === cachedRaw) {
+      return cachedQuotes;
+    }
+
+    try {
+      cachedQuotes = JSON.parse(stored) as OliveQuote[];
+      cachedRaw = stored;
+    } catch {
+      cachedQuotes = EMPTY_QUOTES;
+      cachedRaw = "";
+    }
+
+    return cachedQuotes;
+  };
+
+  const subscribe = (listener: () => void) => {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  };
+
+  const notify = () => {
+    listeners.forEach((listener) => listener());
+  };
+
+  const set = (nextQuotes: OliveQuote[]) => {
+    cachedQuotes = nextQuotes;
+    cachedRaw = JSON.stringify(nextQuotes);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_KEY, cachedRaw);
+    }
+    notify();
+  };
+
+  return {
+    getSnapshot: readStorage,
+    getServerSnapshot: () => EMPTY_QUOTES,
+    subscribe,
+    set,
+  };
+})();
+
 function sanitizePdfText(text: string) {
   return text
     .replace(/[\u202F\u00A0]/g, " ")
@@ -84,31 +146,17 @@ function calculateQuoteTotal(prixUnitaire: number, quantite: number): number {
 }
 
 const Home = () => {
-  const [quotes, setQuotes] = useState<OliveQuote[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
-
-    try {
-      return JSON.parse(stored) as OliveQuote[];
-    } catch {
-      return [];
-    }
-  });
+  const quotes = useSyncExternalStore(
+    quoteStore.subscribe,
+    quoteStore.getSnapshot,
+    quoteStore.getServerSnapshot,
+  );
   const [editId, setEditId] = useState<number | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchOlive, setSearchOlive] = useState("");
 
   const persistQuotes = (nextQuotes: OliveQuote[]) => {
-    setQuotes(nextQuotes);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextQuotes));
-    }
+    quoteStore.set(nextQuotes);
   };
 
   const {

@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Pepiniere Abouelaaz",
   description: "Pepiniere Abouelaaz",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
