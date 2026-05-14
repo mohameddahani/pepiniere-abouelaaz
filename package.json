@@ -2,7 +2,6 @@
   "name": "pepiniere-abouelaaz",
   "version": "0.1.0",
   "private": true,
-  "description": "Pepiniere Abouelaaz - Progressive Web App for nursery management",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
