@@ -1,10 +1,12 @@
 {
   "name": "Pepiniere Abouelaaz",
-  "short_name": "Pepiniere",
+  "short_name": "Pepiniere Abouelaaz",
   "start_url": "/",
   "display": "standalone",
+  "scope": "/",
   "theme_color": "#065f46",
   "background_color": "#0f172a",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icon-192x192.png",
